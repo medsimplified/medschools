@@ -1,0 +1,27 @@
+"use client"
+import Categories from "./Categories"
+import LatestPost from "./LatestPost"
+import Tags from "./Tags"
+import { FaSearch } from "@/lib/fontAwesomeIconsComplete"
+
+const BlogSidebar = ({ style_1 }: any) => {
+   return (
+      <div className="col-xl-3 col-lg-4">
+         <aside className={`blog-sidebar ${style_1 ? "blog-sidebar-two" : ""}`}>
+            <div className="blog-widget widget_search">
+               <div className="sidebar-search-form">
+                  <form onSubmit={(e) => e.preventDefault()}>
+                     <input type="text" placeholder="Search here" />
+                     <button><FaSearch /></button>
+                  </form>
+               </div>
+            </div>
+            <Categories />
+            {/* <LatestPost /> */}
+            <Tags />
+         </aside>
+      </div>
+   )
+}
+
+export default BlogSidebar

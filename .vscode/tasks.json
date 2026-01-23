@@ -1,0 +1,17 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Prisma migrate for curriculum links",
+			"type": "shell",
+			"command": "npx prisma migrate dev --name add-curriculum-course-instructor-links",
+			"group": "build"
+		},
+		{
+			"label": "Prisma migrate for instructorId in Course",
+			"type": "shell",
+			"command": "npx prisma migrate dev --name add-instructorId-to-course",
+			"group": "build"
+		}
+	]
+}

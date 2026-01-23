@@ -1,0 +1,13 @@
+/* Add at the end if this file exists */
+
+/* Force header button colors */
+.btn {
+  background: #0d447a !important;
+  /* box-shadow: 4px 6px 0px 0px #5dba47 !important; */
+  color: #fff !important;
+}
+
+.btn:hover {
+  background: #5dba47 !important;
+  box-shadow: 0 0 0 0 #5dba47 !important;
+}

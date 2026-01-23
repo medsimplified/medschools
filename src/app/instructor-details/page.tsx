@@ -1,0 +1,17 @@
+import InstructorsDetails from "@/components/inner-pages/instructors/instructor-details";
+import Wrapper from "@/layouts/Wrapper";
+import AuthGuard from "@/components/common/AuthGuard";
+
+export const metadata = {
+   title: "Instructors Details Dr.Bhanu Prakash Online Educational Platform",
+};
+
+export default function Page() {
+   return (
+      <AuthGuard>
+         <Wrapper>
+            <InstructorsDetails />
+         </Wrapper>
+      </AuthGuard>
+   );
+}

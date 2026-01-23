@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>MedSchool Simplified</title>
+
+	<!-- Aggressive removal of layout.css: immediate, observes future inserts, and interval fallback -->
+	<script>
+		(function () {
+			var removed = false;
+			function removeLayoutLinks() {
+				document.querySelectorAll('link[rel="stylesheet"]').forEach(function (link) {
+					try {
+						if (!link.href) return;
+						var href = link.getAttribute('href') || link.href || '';
+						// match any url that contains "layout.css" (case-insensitive)
+						if (href.toLowerCase().indexOf('layout.css') !== -1) {
+							// remove or disable depending on DOM state
+							if (link.parentNode) link.parentNode.removeChild(link);
+							else link.disabled = true;
+							removed = true;
+						}
+					} catch (e) { /* noop */ }
+				});
+			}
+			// run ASAP (before main CSS loads)
+			removeLayoutLinks();
+
+			// observe head/body to catch late-inserted <link> tags
+			try {
+				var mo = new MutationObserver(removeLayoutLinks);
+				mo.observe(document.documentElement || document, { childList: true, subtree: true, attributes: false });
+				// stop observing after a short period once we've removed something
+				setTimeout(function () { if (mo.disconnect) mo.disconnect(); }, 8000);
+			} catch (e) { /* noop */ }
+
+			// interval fallback for a few seconds to catch racey injections
+			var attempts = 0;
+			var int = setInterval(function () {
+				removeLayoutLinks();
+				attempts++;
+				if (removed || attempts > 20) {
+					clearInterval(int);
+				}
+			}, 250);
+		})();
+	</script>
+
+	<!-- Load your main stylesheet (cache-busted) -->
+	<link rel="stylesheet" href="/assets/css/main.css?v=20250924" />
+</head>
+<body>
+	<header class="tg-header__area">
+		<!-- lightweight header for preview/testing; replace with your real partials -->
+		<div class="container">
+			<div class="tgmenu__navbar-wrap">
+				<a class="logo" href="/">Logo</a>
+				<nav class="tgmenu__main-menu">
+					<ul><li><a href="#">Home</a></li></ul>
+				</nav>
+				<div class="tgmenu__action">
+					<ul>
+						<li class="header-btn"><a class="btn" href="/login">Get Started</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</header>
+
+	<main>
+		<!-- ...existing code... -->
+		<section class="container">
+			<h1>Welcome</h1>
+			<p>Content goes here — verify header/sticky/button styling now uses main.css only.</p>
+		</section>
+	</main>
+
+	<!-- small reflow to ensure CSS overrides apply immediately after removing layout.css -->
+	<script>
+		requestAnimationFrame(function(){
+			document.documentElement.style.display = 'none';
+			requestAnimationFrame(function(){ document.documentElement.style.display = ''; });
+		});
+	</script>
+</body>
+</html>

@@ -1,0 +1,398 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  relationMode = "prisma"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model LatestVideo {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  videoUrl     String?
+  thumbnailUrl String?
+  tag          String?
+  review       String?
+  price        Float?
+  lesson       Int?
+  student      Int?
+  page         String?
+  thumb        String?
+  youtubeUrl   String?
+  createdAt    DateTime @default(now())
+
+  @@map("latestvideo")
+}
+
+model Subject {
+  id       String           @id @default(cuid())
+  name     String           @unique
+  chapters SubjectChapter[]
+
+  @@map("subject")
+}
+
+model SubjectChapter {
+  id        String  @id @default(cuid())
+  title     String
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  topics    Topic[]
+
+  @@unique([subjectId, title])
+  @@map("subjectchapter")
+}
+
+model Topic {
+  id           String         @id @default(cuid())
+  title        String
+  chapterId    String
+  youtubeUrl   String?
+  pdfUrl       String?
+  mcqUrl       String?
+  caseStudyUrl String?
+  pdfAccess    PdfAccessType?
+  mcqs         MCQ[]
+  subtopics    Subtopic[]
+  chapter      SubjectChapter @relation(fields: [chapterId], references: [id])
+
+  @@unique([chapterId, title])
+  @@map("topic")
+}
+
+model Subtopic {
+  id           String        @id @default(cuid())
+  title        String
+  topicId      String
+  youtubeUrl   String
+  pdfUrl       String?
+  mcqUrl       String?
+  caseStudyUrl String?
+  pdfAccess    PdfAccessType @default(VIEW)
+  mcqs         MCQ[]
+  topic        Topic         @relation(fields: [topicId], references: [id])
+
+  @@map("subtopic")
+}
+
+model MCQ {
+  id           String    @id @default(cuid())
+  question     String
+  options      Json
+  correctIndex Int
+  topicId      String?
+  subtopicId   String?
+  explanation  String?
+  subtopic     Subtopic? @relation(fields: [subtopicId], references: [id])
+  topic        Topic?    @relation(fields: [topicId], references: [id])
+
+  @@map("mcq")
+}
+
+model CourseVideo {
+  id         String          @id @default(cuid())
+  title      String
+  videoId    String
+  playlistId String
+  overview   String?
+  pdfUrl     String?
+  access     PdfAccessType   @default(VIEW)
+  createdAt  DateTime        @default(now())
+  chapters   LegacyChapter[]
+
+  @@map("coursevideo")
+}
+
+model LegacyChapter {
+  id            String      @id @default(cuid())
+  title         String
+  timeStamp     String
+  courseVideoId String
+  courseVideo   CourseVideo @relation(fields: [courseVideoId], references: [id])
+
+  @@map("legacychapter")
+}
+
+enum Role {
+  student
+  instructor
+  course_uploader
+}
+
+model User {
+  id                    String             @id @default(cuid())
+  role                  Role               @default(student)
+  name                  String?
+  email                 String?            @unique
+  emailVerified         DateTime?
+  image                 String?
+  fname                 String?
+  lname                 String?
+  phone                 String?
+  country               String?
+  state                 String?
+  city                  String?
+  university            String?
+  password              String?
+  createdAt             DateTime           @default(now())
+  isVerified            Boolean            @default(false)
+  isNewUser             Boolean            @default(true)
+  subscriptionPlan      String?            @default("none")
+  subscriptionStart     DateTime?
+  subscriptionEnd       DateTime?
+  paymentId             String?
+  hasActiveSubscription Boolean            @default(false)
+  subscriptionStatus    SubscriptionStatus @default(NONE)
+  paymentStatus         PaymentStatus      @default(PENDING)
+  accounts              Account[]
+  paidAccesses          PaidAccess[]
+  resetTokens           ResetToken[]
+  sessions              Session[]
+
+  curriculums Curriculum[]
+  courses     Course[]     @relation("UserCourses")
+  createdPlans SubscriptionPlan[] @relation("UserCreatedPlans")
+
+  @@map("user")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("account")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model OTP {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("otp")
+}
+
+model ResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("resettoken")
+}
+
+model PaidAccess {
+  id        String   @id @default(cuid())
+  userId    String
+  videoId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("paidaccess")
+}
+
+model Admin {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  name        String?
+  bio         String?
+  displayName String?
+  facebook    String?
+  firstName   String?
+  github      String?
+  lastName    String?
+  linkedin    String?
+  phoneNumber String?
+  skill       String?
+  twitter     String?
+  userName    String?
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@map("admin")
+}
+
+model Curriculum {
+  id            String   @id @default(cuid())
+  subject       String
+  chapters      Json
+  createdAt     DateTime @default(now())
+  introVideoUrl String?
+  mcqs          Json?
+  updatedAt     DateTime @updatedAt
+
+  courseId     String
+  instructorId String
+  course       Course @relation(fields: [courseId], references: [id])
+  instructor   User   @relation(fields: [instructorId], references: [id])
+
+  @@map("curriculum")
+}
+
+model Banner {
+  id         Int      @id @default(autoincrement())
+  heading    String
+  subheading String
+  buttonText String
+  buttonLink String?
+  youtubeUrl String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("banner")
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  category    String
+  description String?
+  thumb       String?
+  instructors String
+  price       Float?
+  videoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  instructorId String
+  instructor   User   @relation("UserCourses", fields: [instructorId], references: [id])
+
+  curriculums Curriculum[]
+
+  @@map("course")
+}
+
+model Blog {
+  id      Int      @id @default(autoincrement())
+  title   String
+  content String
+  author  String
+  date    DateTime @default(now())
+  tags    String[]
+  image   String
+
+  @@map("blog")
+}
+
+model SubscriptionPlan {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  title         String
+  description   String?
+  price         Int
+  currency      String   @default("INR")
+  durationDays  Int
+  durationLabel String
+  features      String[] @default([])
+  isPopular     Boolean  @default(false)
+  isPublished   Boolean  @default(false)
+  displayOrder  Int      @default(0)
+  highlight     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdById   String?
+  createdBy     User?    @relation("UserCreatedPlans", fields: [createdById], references: [id])
+
+  @@map("subscription_plan")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  icon      String
+  title     String
+  total     String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("categories")
+}
+
+model HomepageCourse {
+  id        String   @id @default(cuid())
+  title     String
+  thumb     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("homepage_courses")
+}
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  studentName String
+  text        String
+  rating      Int
+  image       String
+  youtubeUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@map("testimonial")
+}
+
+enum PdfAccessType {
+  VIEW
+  DOWNLOAD
+  PAID
+}
+
+enum SubscriptionStatus {
+  NONE
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model RazorpayConfig {
+  id            String   @id @default(cuid())
+  keyId         String   @map("publishableKey")
+  keySecret     String   @map("secretKey")
+  webhookSecret String?  @map("webhookSecret")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("stripe_config")
+}
