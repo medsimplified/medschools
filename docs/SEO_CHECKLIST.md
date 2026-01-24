@@ -42,7 +42,7 @@ Two utility functions for structured data:
 
 ### 4. **Meta Tags & Open Graph** (`src/app/layout.tsx`)
 - **Standard Meta Tags**:
-  - Title: "Bhanuprakash - Online Learning Platform"
+  - Title: "Medschools Simplified - Online Learning Platform"
   - Description: "Quality education and courses for your career growth"
   - Keywords: "education, online courses, learning platform"
 
