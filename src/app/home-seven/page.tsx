@@ -5,7 +5,7 @@ import Wrapper from "@/layouts/Wrapper";
 const HomeSeven = dynamic(() => import("@/components/homes/home-seven"));
 
 export const metadata = {
-  title: "Home Seven Dr.Bhanu Prakash Online Educational Platform",
+  title: "Home Seven | Explore Medical Education - MedSchools",
 };
 
 const Page = () => {

@@ -21,7 +21,7 @@ const LessonPage = () => {
   useEffect(() => {
     setMounted(true);
     // Set document title client-side
-    document.title = "Lesson - Dr.Bhanu Prakash Online Educational Platform";
+    document.title = "Lesson - Medical Courses - MedSchools";
   }, []);
 
   if (!mounted) {

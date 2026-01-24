@@ -3,7 +3,7 @@ import Wrapper from "@/layouts/Wrapper";
 import AuthGuard from "@/components/common/AuthGuard";
 
 export const metadata = {
-   title: "Instructor Review Dr.Bhanu Prakash Online Educational Platform",
+   title: "Instructor Review | Review Your Medical Courses - MedSchools",
 };
 
 export default function Page() {

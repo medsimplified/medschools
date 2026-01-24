@@ -37,15 +37,18 @@ const LoginArea = () => {
             <div className="singUp-wrap">
               <h2 className="title">Welcome back!</h2>
               <p>
-                Log in to your account to access your dashboard and manage your courses.
+                Log in to access your student dashboard and learning resources. 
               </p>
 
-              <LoginForm />
+              <LoginForm allowedRoles={["student"]} showRoleSelector={false} />
 
               <div className="account__switch">
                 <p>
                   Don&apos;t have an account? <Link href="/registration">Sign Up</Link>
                 </p>
+                {/* <p className="text-muted" style={{ fontSize: "0.9rem" }}>
+                  Instructor or course uploader? <Link href="/instructor-login">Access your portal</Link>.
+                </p> */}
               </div>
             </div>
           </div>

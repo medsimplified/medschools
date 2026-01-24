@@ -2,7 +2,7 @@ import CourseDetails from "@/components/courses/course-details";
 import Wrapper from "@/layouts/Wrapper";
 
 export const metadata = {
-   title: "Course Details Dr.Bhanu Prakash Online Educational Platform",
+   title: "Course Details | Explore Medical Courses - MedSchools",
 };
 const page = () => {
    return (

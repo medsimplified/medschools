@@ -2,7 +2,7 @@ import CheckOut from "@/components/inner-shop/check-out";
 import Wrapper from "@/layouts/Wrapper";
 
 export const metadata = {
-  title: "CheckOut Dr.Bhanu Prakash Online Educational Platform",
+  title: "Checkout | Complete Your Purchase - MedSchools",
 };
 
 // 🚫 Do not statically prerender this page at build time

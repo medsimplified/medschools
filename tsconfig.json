@@ -7,9 +7,9 @@
       "es6"
     ],
     "types": [
-  "node",
-  "next-auth"
-],
+      "next",
+      "node"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,

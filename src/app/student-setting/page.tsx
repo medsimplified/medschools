@@ -2,7 +2,7 @@ import StudentSetting from "@/dashboard/student-dashboard/student-setting";
 import Wrapper from "@/layouts/Wrapper";
 
 export const metadata = {
-   title: "Student Setting Dr.Bhanu Prakash Online Educational Platform",
+   title: "Student Setting | Manage Your Medical Courses - MedSchools",
 };
 const index = () => {
    return (

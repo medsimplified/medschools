@@ -13,22 +13,28 @@ import ClientLayout from "./ClientLayout";
 import type { Metadata } from "next";
 import { generateOrganizationSchema } from "@/lib/schema";
 
+const defaultSiteUrl = process.env.NEXTAUTH_URL || "https://medschoolsimplified.org";
+
 export const metadata: Metadata = {
-  title: "Bhanuprakash - Online Learning Platform",
-  description: "Quality education and courses for your career growth",
-  keywords: "education, online courses, learning platform",
+  title: "MedSchool Simplified | Online Medical Learning Platform",
+  description: "Streamline your medical school journey with expert-led courses, interactive MCQs, and curriculum planning tools tailored for aspiring doctors.",
+  keywords: "medical courses, medschool simplified, online medical education, med school curriculum, usmle prep",
+  metadataBase: new URL(defaultSiteUrl),
   openGraph: {
-    title: "Bhanuprakash - Online Learning Platform",
-    description: "Quality education and courses for your career growth",
-    url: process.env.NEXTAUTH_URL || "https://bhanuprakash.com",
-    siteName: "Bhanuprakash",
+    title: "MedSchool Simplified | Online Medical Learning Platform",
+    description: "Streamline your medical school journey with expert-led courses, interactive MCQs, and curriculum planning tools tailored for aspiring doctors.",
+    url: defaultSiteUrl,
+    siteName: "MedSchool Simplified",
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Bhanuprakash - Online Learning Platform",
-    description: "Quality education and courses for your career growth",
+    title: "MedSchool Simplified | Online Medical Learning Platform",
+    description: "Streamline your medical school journey with expert-led courses, interactive MCQs, and curriculum planning tools tailored for aspiring doctors.",
+  },
+  alternates: {
+    canonical: defaultSiteUrl,
   },
 };
 

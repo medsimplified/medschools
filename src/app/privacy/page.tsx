@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy | Bhanuprakash",
+  title: "Privacy Policy | MedSchools Simplified",
   description: "Learn how we handle your data, cookies, and contact preferences.",
 };
 

@@ -9,8 +9,16 @@ import HomeSeven from "@/components/homes/home-seven";
 import Wrapper from "@/layouts/Wrapper";
 
 export const metadata = {
-  title: "Dr.Bhanu Prakash Online Educational Platform",
+  title: "MedSchool Simplified | Online Medical Learning Platform",
+  description: "Streamline your medical school journey with expert-led courses, interactive MCQs, and curriculum planning tools tailored for aspiring doctors.",
+  keywords: "medical courses, medschool simplified, online medical education, med school curriculum, usmle prep, medical student resources",
+  openGraph: {
+    title: "MedSchool Simplified | Online Medical Learning Platform",
+    description: "Streamline your medical school journey with expert-led courses, interactive MCQs, and curriculum planning tools tailored for aspiring doctors.",
+    type: "website",
+  },
 };
+
 const index = () => {
   return (
     <Wrapper>

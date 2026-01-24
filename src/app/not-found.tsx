@@ -3,7 +3,9 @@ import NotFound from "@/components/inner-pages/error";
 import Wrapper from "@/layouts/Wrapper";
 
 export const metadata = {
-  title: "Dr.Bhanu Prakash Online Educational Platform",
+  title: "Page Not Found | MedSchool Simplified",
+  description: "The page you are looking for could not be found. Return to MedSchool Simplified to continue your medical education journey.",
+  robots: "noindex, nofollow",
 };
 
 export default function NotFoundPage() {

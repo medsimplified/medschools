@@ -2,7 +2,7 @@ import Cart from "@/components/inner-shop/cart";
 import Wrapper from "@/layouts/Wrapper";
 
 export const metadata = {
-   title: "Cart Dr.Bhanu Prakash Online Educational Platform",
+   title: "Shopping Cart | Review Your Medical Courses - MedSchools",
 };
 const page = () => {
    return (

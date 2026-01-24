@@ -5,8 +5,9 @@ import prisma from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, password, name, role = "instructor" } = body;
-    if (!email || !password || !name || !role) {
+    const { email, password, name } = body;
+    const role = "instructor";
+    if (!email || !password || !name) {
       return NextResponse.json({ error: "All fields are required" }, { status: 400 });
     }
     // Check if user already exists

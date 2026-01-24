@@ -8,7 +8,6 @@ export default function InstructorRegistration() {
     email: "",
     password: "",
     name: "",
-    role: "instructor", // default
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -22,16 +21,12 @@ export default function InstructorRegistration() {
     const res = await fetch("/api/instructor-register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, role: "instructor" }),
     });
     if (res.ok) {
       setSuccess("Registration successful! Redirecting...");
       setError("");
-      if (form.role === "uploader") {
-        setTimeout(() => router.replace("/instructor-uploader-dashboard"), 1200);
-      } else {
-        setTimeout(() => router.replace("/instructor-login"), 1200);
-      }
+      setTimeout(() => router.replace("/instructor-login"), 1200);
     } else {
       setError("Registration failed. Try again.");
       setSuccess("");
@@ -51,20 +46,6 @@ export default function InstructorRegistration() {
                   Fill in your details to create an instructor account.
                 </p>
                 <form onSubmit={handleSubmit}>
-                  <div className="mb-3">
-                    <label className="form-label fw-semibold" htmlFor="role">Registering as</label>
-                    <select
-                      id="role"
-                      name="role"
-                      className="form-control rounded-3"
-                      value={form.role}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="instructor">Instructor</option>
-                      <option value="uploader">Course Uploader</option>
-                    </select>
-                  </div>
                   <div className="mb-3">
                     <label className="form-label fw-semibold" htmlFor="name">Name</label>
                     <input
@@ -122,8 +103,11 @@ export default function InstructorRegistration() {
                   </button>
                 </form>
                 <div className="account__switch mt-4 text-center">
-                  <p>
+                  <p className="mb-1">
                     Already have an account? <a href="/instructor-login">Login</a>
+                  </p>
+                  <p className="text-muted" style={{ fontSize: "0.9rem" }}>
+                    Course uploader accounts are managed by instructors from the dashboard.
                   </p>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 "use client"
 import React from 'react';
 import Select from 'react-select';
+import type { Theme } from 'react-select';
 import makeAnimated from 'react-select/animated';
 import { FaSearch } from '@/lib/fontAwesomeIconsComplete';
 
@@ -28,7 +29,7 @@ const CustomSelect = ({ value, onChange }: any) => {
                options={options}
                placeholder="Categories"
                classNamePrefix="course-category-dropdown"
-               theme={(theme) => ({
+               theme={(theme: Theme) => ({
                   ...theme,
                })}
                isSearchable={false}

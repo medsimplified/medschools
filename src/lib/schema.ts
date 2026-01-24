@@ -31,14 +31,14 @@ export function generateOrganizationSchema() {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'Bhanuprakash',
-    url: process.env.NEXTAUTH_URL || 'https://bhanuprakash.com',
-    description: 'Quality education and online courses for your career growth',
-    logo: `${process.env.NEXTAUTH_URL || 'https://bhanuprakash.com'}/logo.png`,
+    name: 'MedSchool Simplified',
+    url: process.env.NEXTAUTH_URL || 'https://medschoolsimplified.org',
+    description: 'Online medical education platform offering structured courses, MCQs, and study support for aspiring physicians.',
+    logo: `${process.env.NEXTAUTH_URL || 'https://medschoolsimplified.org'}/logo.png`,
     sameAs: [
-      'https://www.facebook.com/bhanuprakash',
-      'https://www.twitter.com/bhanuprakash',
-      'https://www.instagram.com/bhanuprakash',
+      'https://www.facebook.com/medschoolsimplified',
+      'https://www.twitter.com/medschoolsimplified',
+      'https://www.instagram.com/medschoolsimplified',
     ],
   };
 }

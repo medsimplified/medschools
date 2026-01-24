@@ -2,7 +2,7 @@ import StudentEnrolledCourses from "@/dashboard/student-dashboard/student-enroll
 import Wrapper from "@/layouts/Wrapper";
 
 export const metadata = {
-   title: "Student Dashboard Dr.Bhanu Prakash Online Educational Platform",
+   title: "Student Dashboard | Your Enrolled Medical Courses - MedSchools",
 };
 const index = () => {
    return (

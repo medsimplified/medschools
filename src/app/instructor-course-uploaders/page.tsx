@@ -1,28 +1,109 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import DashboardSidebar from "@/dashboard/dashboard-common/DashboardSidebar";
-import Image from "next/image";
 // import bg_img from "@/assets/img/bg/dashboard_bg.jpg";
 import AuthGuard from "@/components/common/AuthGuard";
 
 const InstructorCourseUploaders = () => {
-  const [uploaders, setUploaders] = useState([]);
+  const [uploaders, setUploaders] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    phone: "",
+    organization: "",
+  });
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+  const [createLoading, setCreateLoading] = useState(false);
+
+  const fetchUploaders = useCallback(async () => {
+    try {
+      const res = await fetch("/api/course-uploaders");
+      if (!res.ok) {
+        throw new Error("Failed to load course uploaders");
+      }
+      const data = await res.json();
+      setUploaders(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch course uploaders", err);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchUploaders = async () => {
-      try {
-        const res = await fetch("/api/course-uploaders");
-        const data = await res.json();
-        setUploaders(data);
-      } catch (err) {
-        console.error("Failed to fetch course uploaders", err);
-      }
-    };
     fetchUploaders();
-  }, []);
+  }, [fetchUploaders]);
+
+  const resetCreateForm = () => {
+    setCreateForm({
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      phone: "",
+      organization: "",
+    });
+  };
+
+  const handleCreateChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setCreateForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const generatePassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$";
+    let result = "";
+    for (let i = 0; i < 10; i += 1) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setCreateForm((prev) => ({ ...prev, password: result }));
+  };
+
+  const handleCreateSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCreateError(null);
+    setCreateSuccess(null);
+
+    if (!createForm.firstName.trim() || !createForm.email.trim() || !createForm.password.trim()) {
+      setCreateError("First name, email, and password are required.");
+      return;
+    }
+
+    setCreateLoading(true);
+    try {
+      const res = await fetch("/api/course-uploaders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: createForm.firstName.trim(),
+          lastName: createForm.lastName.trim() || undefined,
+          email: createForm.email.trim(),
+          password: createForm.password,
+          phone: createForm.phone.trim() || undefined,
+          organization: createForm.organization.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to create course uploader");
+      }
+
+      setCreateSuccess("Course uploader created successfully. Share the credentials with them directly.");
+      resetCreateForm();
+      await fetchUploaders();
+      setIsCreating(false);
+    } catch (error: any) {
+      setCreateError(error?.message || "Failed to create course uploader");
+    } finally {
+      setCreateLoading(false);
+    }
+  };
 
   // Filtered and paginated uploaders
   const filtered = uploaders.filter((user: any) => {
@@ -89,6 +170,28 @@ const InstructorCourseUploaders = () => {
             <div className="dashboard__content-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
               <h4 className="title" style={{ fontWeight: 900, fontSize: 28, color: '#222', letterSpacing: 1, margin: 0 }}>Course Uploaders</h4>
               <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreating((prev) => !prev);
+                    setCreateError(null);
+                    setCreateSuccess(null);
+                  }}
+                  style={{
+                    fontWeight: 700,
+                    borderRadius: 10,
+                    fontSize: 16,
+                    background: 'linear-gradient(90deg,#0d447a 0%,#1976d2 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    boxShadow: '0 2px 8px rgba(13,68,122,0.35)',
+                    padding: '8px 22px',
+                    letterSpacing: 1,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {isCreating ? 'Close' : 'Add Course Uploader'}
+                </button>
                 <input
                   type="text"
                   placeholder="Search uploaders..."
@@ -99,6 +202,207 @@ const InstructorCourseUploaders = () => {
                 <button className="btn btn-primary" onClick={downloadExcel} type="button" style={{ fontWeight: 700, borderRadius: 10, fontSize: 16, background: 'linear-gradient(90deg,#5624d0 60%,#f7b32b 100%)', color: '#fff', border: 'none', boxShadow: '0 2px 8px #5624d044', padding: '8px 22px', letterSpacing: 1, textTransform: 'uppercase' }}>Download Excel</button>
               </div>
             </div>
+            {isCreating && (
+              <div style={{
+                background: '#fff',
+                borderRadius: 18,
+                boxShadow: '0 4px 24px #e3e6ed44',
+                padding: '24px',
+                border: '1.5px solid #e3e6ed',
+                marginBottom: 24,
+              }}>
+                <h5 style={{ fontWeight: 800, fontSize: 20, color: '#0d447a', marginBottom: 16 }}>
+                  Create a course uploader account
+                </h5>
+                <p style={{ color: '#555', marginBottom: 18 }}>
+                  Fill in the details below. Share the generated credentials with the uploader so they can sign in from the dedicated portal.
+                </p>
+                {createError && (
+                  <div style={{
+                    background: '#fdecea',
+                    color: '#b71c1c',
+                    borderRadius: 10,
+                    padding: '10px 16px',
+                    fontWeight: 600,
+                    marginBottom: 16,
+                  }}>
+                    {createError}
+                  </div>
+                )}
+                {createSuccess && (
+                  <div style={{
+                    background: '#e8f5e9',
+                    color: '#256029',
+                    borderRadius: 10,
+                    padding: '10px 16px',
+                    fontWeight: 600,
+                    marginBottom: 16,
+                  }}>
+                    {createSuccess}
+                  </div>
+                )}
+                <form onSubmit={handleCreateSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                  <div className="form-grp">
+                    <label style={{ fontWeight: 600, color: '#222', marginBottom: 6 }}>First Name *</label>
+                    <input
+                      type="text"
+                      name="firstName"
+                      value={createForm.firstName}
+                      onChange={handleCreateChange}
+                      placeholder="e.g. Alex"
+                      required
+                      style={{
+                        borderRadius: 10,
+                        border: '1.5px solid #d1d5db',
+                        padding: '10px 14px',
+                        width: '100%',
+                      }}
+                    />
+                  </div>
+                  <div className="form-grp">
+                    <label style={{ fontWeight: 600, color: '#222', marginBottom: 6 }}>Last Name</label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={createForm.lastName}
+                      onChange={handleCreateChange}
+                      placeholder="Optional"
+                      style={{
+                        borderRadius: 10,
+                        border: '1.5px solid #d1d5db',
+                        padding: '10px 14px',
+                        width: '100%',
+                      }}
+                    />
+                  </div>
+                  <div className="form-grp">
+                    <label style={{ fontWeight: 600, color: '#222', marginBottom: 6 }}>Email *</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={createForm.email}
+                      onChange={handleCreateChange}
+                      placeholder="uploader@example.com"
+                      required
+                      style={{
+                        borderRadius: 10,
+                        border: '1.5px solid #d1d5db',
+                        padding: '10px 14px',
+                        width: '100%',
+                      }}
+                    />
+                  </div>
+                  <div className="form-grp" style={{ position: 'relative' }}>
+                    <label style={{ fontWeight: 600, color: '#222', marginBottom: 6 }}>Password *</label>
+                    <input
+                      type="text"
+                      name="password"
+                      value={createForm.password}
+                      onChange={handleCreateChange}
+                      placeholder="Generate or enter"
+                      required
+                      style={{
+                        borderRadius: 10,
+                        border: '1.5px solid #d1d5db',
+                        padding: '10px 48px 10px 14px',
+                        width: '100%',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={generatePassword}
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        bottom: 10,
+                        padding: '6px 12px',
+                        borderRadius: 8,
+                        border: 'none',
+                        background: '#5dba47',
+                        color: '#fff',
+                        fontWeight: 600,
+                        boxShadow: '0 2px 8px rgba(93,186,71,0.35)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Generate
+                    </button>
+                  </div>
+                  <div className="form-grp">
+                    <label style={{ fontWeight: 600, color: '#222', marginBottom: 6 }}>Phone</label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={createForm.phone}
+                      onChange={handleCreateChange}
+                      placeholder="Optional"
+                      style={{
+                        borderRadius: 10,
+                        border: '1.5px solid #d1d5db',
+                        padding: '10px 14px',
+                        width: '100%',
+                      }}
+                    />
+                  </div>
+                  <div className="form-grp">
+                    <label style={{ fontWeight: 600, color: '#222', marginBottom: 6 }}>Organization / Department</label>
+                    <input
+                      type="text"
+                      name="organization"
+                      value={createForm.organization}
+                      onChange={handleCreateChange}
+                      placeholder="Optional"
+                      style={{
+                        borderRadius: 10,
+                        border: '1.5px solid #d1d5db',
+                        padding: '10px 14px',
+                        width: '100%',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetCreateForm();
+                        setCreateError(null);
+                        setCreateSuccess(null);
+                        setIsCreating(false);
+                      }}
+                      style={{
+                        background: '#f1f1f1',
+                        color: '#333',
+                        borderRadius: 10,
+                        padding: '10px 20px',
+                        fontWeight: 600,
+                        border: 'none',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={createLoading}
+                      style={{
+                        background: createLoading ? '#9ca3af' : 'linear-gradient(90deg,#5dba47 0%,#4a9c38 100%)',
+                        color: '#fff',
+                        borderRadius: 10,
+                        padding: '10px 24px',
+                        fontWeight: 700,
+                        border: 'none',
+                        boxShadow: '0 3px 12px rgba(93,186,71,0.35)',
+                        cursor: createLoading ? 'not-allowed' : 'pointer',
+                        textTransform: 'uppercase',
+                        letterSpacing: 1,
+                      }}
+                    >
+                      {createLoading ? 'Creating...' : 'Create Uploader'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
             <div style={{ background: '#fff', borderRadius: 18, boxShadow: '0 4px 24px #e3e6ed44', padding: 0, overflow: 'hidden', border: '1.5px solid #e3e6ed' }}>
               <table className="table" style={{ margin: 0, borderRadius: 18, overflow: 'hidden' }}>
                 <thead style={{ background: 'linear-gradient(90deg,#f7b32b 0%,#5624d0 100%)' }}>

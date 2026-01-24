@@ -3,7 +3,7 @@ import InstructorWishlist from "@/dashboard/instructor-dashboard/instructor-wish
 import Wrapper from "@/layouts/Wrapper";
 
 export const metadata = {
-   title: "Instructor Wishlist Dr.Bhanu Prakash Online Educational Platform",
+   title: "Instructor Wishlist | Manage Your Wishlist - MedSchools",
 };
 
 export default function Page() {

@@ -1,12 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "react-toastify";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import BtnArrow from "@/svg/BtnArrow";
-import Link from "next/link";
 import { signIn } from "next-auth/react";
 
 interface FormData {
@@ -15,6 +16,13 @@ interface FormData {
   password: string;
 }
 
+interface LoginFormProps {
+  allowedRoles?: FormData["role"][];
+  showRoleSelector?: boolean;
+}
+
+const DEFAULT_ROLES: FormData["role"][] = ["student", "instructor", "course_uploader"];
+
 // ✅ Validation schema
 const schema = yup.object({
   role: yup.string().oneOf(['student', 'instructor', 'course_uploader']).required("Role is required"),
@@ -22,21 +30,32 @@ const schema = yup.object({
   password: yup.string().required("Password is required"),
 });
 
-const LoginForm = () => {
+const LoginForm = ({ allowedRoles, showRoleSelector }: LoginFormProps) => {
   const router = useRouter();
+  const permittedRoles: FormData["role"][] = allowedRoles && allowedRoles.length ? allowedRoles : DEFAULT_ROLES;
+  const defaultRole: FormData["role"] = permittedRoles[0] ?? "student";
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
-    watch
   } = useForm<FormData>({
     resolver: yupResolver(schema),
-    defaultValues: { role: 'student' },
+    defaultValues: { role: defaultRole },
   });
 
+  useEffect(() => {
+    setValue("role", defaultRole, { shouldValidate: false });
+  }, [defaultRole, setValue]);
+
   const onSubmit = async (data: FormData) => {
+    if (!permittedRoles.includes(data.role)) {
+      toast.error("Role is not permitted for this login form");
+      return;
+    }
+
     try {
       const res = await signIn("credentials", {
         redirect: false,
@@ -62,35 +81,41 @@ const LoginForm = () => {
     }
   };
 
-  // Watch role for conditional fields
-  const role = watch('role');
+  const shouldShowRoleSelector = showRoleSelector ?? permittedRoles.length > 1;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="account__form">
-      <div className="form-grp">
-        <label htmlFor="role">Role</label>
-        <select
-          id="role"
-          {...register("role")}
-          style={{
-            width: '100%',
-            padding: '14px 20px',
-            fontSize: '16px',
-            color: 'var(--tg-heading-color)',
-            border: '1px solid #E1E1E1',
-            background: 'var(--tg-common-color-white)',
-            borderRadius: '5px',
-            lineHeight: '1',
-            transition: 'all 0.3s ease-out 0s',
-            cursor: 'pointer'
-          }}
-        >
-          <option value="student">Student</option>
-          <option value="instructor">Instructor</option>
-          <option value="course_uploader">Course Uploader</option>
-        </select>
-        <p className="form_error">{errors.role?.message}</p>
-      </div>
+      {shouldShowRoleSelector ? (
+        <div className="form-grp">
+          <label htmlFor="role">Role</label>
+          <select
+            id="role"
+            {...register("role")}
+            style={{
+              width: '100%',
+              padding: '14px 20px',
+              fontSize: '16px',
+              color: 'var(--tg-heading-color)',
+              border: '1px solid #E1E1E1',
+              background: 'var(--tg-common-color-white)',
+              borderRadius: '5px',
+              lineHeight: '1',
+              transition: 'all 0.3s ease-out 0s',
+              cursor: 'pointer'
+            }}
+          >
+            {permittedRoles.map((role) => {
+              const label = role === "course_uploader"
+                ? "Course Uploader"
+                : role.charAt(0).toUpperCase() + role.slice(1);
+              return (
+                <option key={role} value={role}>{label}</option>
+              );
+            })}
+          </select>
+          <p className="form_error">{errors.role?.message}</p>
+        </div>
+      ) : null}
 
 
       <div className="form-grp">

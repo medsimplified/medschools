@@ -2,7 +2,7 @@ import ProductDetails from "@/components/inner-shop/product-details";
 import Wrapper from "@/layouts/Wrapper";
 
 export const metadata = {
-   title: "Shop Details Dr.Bhanu Prakash Online Educational Platform",
+   title: "Shop Details | Explore Medical Courses - MedSchools",
 };
 const index = () => {
    return (

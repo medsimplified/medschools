@@ -2,7 +2,7 @@ import StudentWishlist from "@/dashboard/student-dashboard/student-wishlist";
 import Wrapper from "@/layouts/Wrapper";
 
 export const metadata = {
-   title: "Student Wishlist Dr.Bhanu Prakash Online Educational Platform",
+   title: "Student Wishlist | Manage Your Medical Courses - MedSchools",
 };
 const index = () => {
    return (
