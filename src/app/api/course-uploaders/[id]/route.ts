@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 
@@ -27,6 +28,18 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     if (!firstName || !email) {
       return NextResponse.json({ error: "First name and email are required" }, { status: 400 });
+    }
+
+    const existing = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        role: true,
+      },
+    });
+
+    if (!existing || existing.role !== "course_uploader") {
+      return NextResponse.json({ error: "Course uploader not found" }, { status: 404 });
     }
 
     const updates: Record<string, unknown> = {
@@ -56,7 +69,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     });
 
     return NextResponse.json({ success: true, user: updated });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (error instanceof PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json({ error: "Email already in use" }, { status: 409 });
+    }
+
     console.error("Failed to update course uploader", error);
     return NextResponse.json({ error: "Failed to update course uploader" }, { status: 500 });
   }
@@ -72,12 +89,28 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
 
     const id = params.id;
 
+    const existing = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        role: true,
+      },
+    });
+
+    if (!existing || existing.role !== "course_uploader") {
+      return NextResponse.json({ error: "Course uploader not found" }, { status: 404 });
+    }
+
     await prisma.user.delete({
       where: { id },
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (error instanceof PrismaClientKnownRequestError && error.code === "P2003") {
+      return NextResponse.json({ error: "Cannot delete course uploader because related records exist" }, { status: 409 });
+    }
+
     console.error("Failed to delete course uploader", error);
     return NextResponse.json({ error: "Failed to delete course uploader" }, { status: 500 });
   }
