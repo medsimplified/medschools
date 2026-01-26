@@ -121,7 +121,7 @@ const BannerVideos = () => {
       youtubeUrl: editBanner.youtubeUrl.trim(),
     };
 
-    await fetch(`/api/banner-videos/${editBanner.id}/update`, {
+    await fetch(`/api/banner-videos/${editBanner.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

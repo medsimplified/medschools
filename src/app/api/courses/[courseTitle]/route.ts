@@ -187,6 +187,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Delete related curriculum records first
+    await prisma.curriculum.deleteMany({
+      where: { courseId: course.id },
+    });
+
+    // Then delete the course
     await prisma.course.delete({
       where: { id: course.id },
     });
@@ -202,3 +208,4 @@ export async function DELETE(
     );
   }
 }
+  

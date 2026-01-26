@@ -24,7 +24,6 @@ const BlogAuthor = ({ author, image }: BlogAuthorProps) => {
       )}
       <div>
         <h5 className="mb-1">{author}</h5>
-        <span>Author</span>
       </div>
     </div>
   );

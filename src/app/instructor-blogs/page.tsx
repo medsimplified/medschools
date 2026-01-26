@@ -13,6 +13,7 @@ type BlogForm = {
   author: string;
   tags: string;   // comma separated for UI
   image: string;  // URL (optional)
+  imageFile: File | null;  // for upload
 };
 
 type Blog = {
@@ -31,6 +32,7 @@ const emptyForm: BlogForm = {
   author: "",
   tags: "",
   image: "",
+  imageFile: null,
 };
 
 function InstructorBlogsPage() {
@@ -66,12 +68,39 @@ function InstructorBlogsPage() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setForm((prev) => ({ ...prev, imageFile: file }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setSuccess(null);
     setError(null);
     try {
+      let imageUrl = form.image.trim() || null;
+
+      // Upload image file if provided
+      if (form.imageFile) {
+        const formData = new FormData();
+        formData.append("file", form.imageFile);
+
+        const uploadRes = await fetch("/api/upload-image", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          imageUrl = uploadData.url;
+        } else {
+          throw new Error("Failed to upload image");
+        }
+      }
+
       const res = await fetch("/api/blogs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -79,7 +108,7 @@ function InstructorBlogsPage() {
           title: form.title.trim(),
           content: form.content.trim(),
           author: form.author.trim(),
-          image: form.image.trim() || null,
+          image: imageUrl,
           tags: form.tags
             .split(",")
             .map((t) => t.trim())
@@ -197,7 +226,17 @@ function InstructorBlogsPage() {
                 </div>
 
                 <div className="col-12">
-                  <Form.Label className="fw-semibold">Image URL</Form.Label>
+                  <Form.Label className="fw-semibold">Image</Form.Label>
+                  <Form.Control
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="mb-2"
+                  />
+                  <Form.Text muted className="d-block mb-2">
+                    Upload an image file for the blog cover
+                  </Form.Text>
+                  <Form.Label className="fw-semibold mt-2">Or Image URL</Form.Label>
                   <Form.Control
                     name="image"
                     value={form.image}
@@ -205,7 +244,7 @@ function InstructorBlogsPage() {
                     placeholder="https://example.com/cover.jpg (optional)"
                   />
                   <Form.Text muted>
-                    Optional: a cover image URL for the blog card/preview.
+                    Alternatively, provide a direct image URL
                   </Form.Text>
                 </div>
               </div>
