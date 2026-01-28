@@ -24,7 +24,13 @@ export async function GET() {
     const blogs = await prisma.blog.findMany({
       orderBy: { date: "desc" }
     });
-    return NextResponse.json(blogs);
+    return NextResponse.json(blogs, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch blogs." }, { status: 500 });
   }

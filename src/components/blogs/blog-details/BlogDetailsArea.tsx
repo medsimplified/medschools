@@ -28,7 +28,14 @@ const BlogDetailsArea = ({ blog }: { blog: Blog }) => {
             <div className="blog__details-wrapper">
               <div className="blog__details-thumb">
                 {blog.image && (
-                  <Image src={blog.image} alt={blog.title} width={800} height={400} style={{ width: "100%", height: "auto" }} />
+                  <Image 
+                    src={blog.image} 
+                    alt={blog.title} 
+                    width={800} 
+                    height={400} 
+                    style={{ width: "100%", height: "auto" }}
+                    unoptimized
+                  />
                 )}
               </div>
               <div className="blog__details-content">

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { Button, Form } from "react-bootstrap";
+import { Button, Form, Modal, Table } from "react-bootstrap";
 import DashboardSidebar from "@/dashboard/dashboard-common/DashboardSidebar";
 import * as XLSX from "xlsx";
 import { useSession } from "next-auth/react";
@@ -49,6 +49,8 @@ interface Curriculum {
   chapters: Chapter[];
   courseId?: string;
   instructorId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // ============================================================================
@@ -125,6 +127,7 @@ const UploadContent = () => {
 
   const [allCurriculums, setAllCurriculums] = useState<Curriculum[]>([]);
   const [editCurriculum, setEditCurriculum] = useState<Curriculum | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -137,8 +140,17 @@ const UploadContent = () => {
     setLoadingCurriculums(true);
     try {
       if (!courseId) return;
-      const res = await fetch(`/api/curriculum?courseId=${courseId}`);
+      // Add cache-busting timestamp to force fresh data
+      const timestamp = new Date().getTime();
+      const res = await fetch(`/api/curriculum?courseId=${courseId}&t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       const data = await res.json();
+      console.log('Fetched curriculums:', data);
       setAllCurriculums(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching curriculums:", error);
@@ -176,6 +188,101 @@ const UploadContent = () => {
       throw new Error("Upload response missing 'url'");
     }
     return data.url;
+  };
+
+  // ========================================================================
+  // EXCEL IMPORT HANDLER
+  // ========================================================================
+  const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        // Parse Excel data into curriculum structure
+        // Expected columns: Chapter, Topic, HasSubtopics, Subtopic, YouTubeURL, PDFAccess
+        const chapters: Chapter[] = [];
+        let currentChapter: Chapter | null = null;
+        let currentTopic: Topic | null = null;
+
+        jsonData.forEach((row: any) => {
+          // New chapter
+          if (row.Chapter && row.Chapter !== currentChapter?.chapter) {
+            // Save previous topic to previous chapter
+            if (currentChapter && currentTopic) {
+              (currentChapter as Chapter).topics.push(currentTopic as Topic);
+              currentTopic = null;
+            }
+            // Save previous chapter
+            if (currentChapter) {
+              chapters.push(currentChapter as Chapter);
+            }
+            // Create new chapter
+            currentChapter = {
+              chapter: row.Chapter,
+              topics: [],
+            };
+            currentTopic = null;
+          }
+
+          // New topic
+          if (row.Topic && currentChapter) {
+            // Save previous topic to current chapter
+            if (currentTopic && currentTopic.topic !== row.Topic) {
+              (currentChapter as Chapter).topics.push(currentTopic as Topic);
+              currentTopic = null;
+            }
+            
+            // Create new topic if needed
+            if (!currentTopic) {
+              const hasSubtopics = row.HasSubtopics?.toLowerCase() === 'yes' || row.HasSubtopics?.toLowerCase() === 'true';
+              currentTopic = {
+                topic: row.Topic,
+                hasSubtopics,
+                youtubeUrl: hasSubtopics ? undefined : (row.YouTubeURL || ''),
+                pdfAccess: hasSubtopics ? undefined : (row.PDFAccess || 'VIEW'),
+                pdf: null,
+                subtopics: hasSubtopics ? [] : undefined,
+              };
+            }
+
+            // Add subtopic if exists
+            if (row.Subtopic && currentTopic && currentTopic.hasSubtopics && currentTopic.subtopics) {
+              currentTopic.subtopics.push({
+                title: row.Subtopic,
+                youtubeUrl: row.YouTubeURL || '',
+                pdfAccess: row.PDFAccess || 'VIEW',
+                pdf: null,
+              });
+            }
+          }
+        });
+
+        // Push last chapter and topic
+        if (currentChapter && currentTopic) {
+          (currentChapter as Chapter).topics.push(currentTopic as Topic);
+        }
+        if (currentChapter) {
+          chapters.push(currentChapter as Chapter);
+        }
+
+        // Update curriculum state
+        const next = [...curriculum];
+        next[0].chapters = chapters;
+        setCurriculum(next);
+        setSuccessMessage(`Excel imported successfully! ${chapters.length} chapters loaded.`);
+      } catch (err) {
+        setErrorMessage(`Failed to parse Excel: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   // ========================================================================
@@ -255,7 +362,13 @@ const UploadContent = () => {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed to save curriculum");
-      setSuccessMessage("Curriculum uploaded successfully!");
+      
+      const savedCurriculum = await res.json();
+      console.log('Curriculum saved:', savedCurriculum);
+      
+      setSuccessMessage("Curriculum uploaded successfully! Refreshing list...");
+      
+      // Reset form
       setCurriculum([
         {
           subject: "",
@@ -271,11 +384,81 @@ const UploadContent = () => {
           ],
         },
       ]);
-      fetchCurriculums();
+      
+      // Force immediate refresh
+      await fetchCurriculums();
+      setSuccessMessage("Curriculum uploaded successfully!");
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ========================================================================
+  // EDIT & DELETE HANDLERS
+  // ========================================================================
+  const handleEditClick = (curriculum: Curriculum) => {
+    setEditCurriculum(curriculum);
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editCurriculum || !editCurriculum.id) return;
+    
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setSaving(true);
+
+    try {
+      const res = await fetch(`/api/curriculum/${editCurriculum.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: editCurriculum.subject,
+          introVideoUrl: editCurriculum.introVideoUrl,
+          mcqs: editCurriculum.mcqs,
+          chapters: editCurriculum.chapters,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update curriculum");
+      
+      const updatedData = await res.json();
+      console.log('Curriculum updated:', updatedData);
+      
+      setShowEditModal(false);
+      setEditCurriculum(null);
+      
+      // Force immediate refresh
+      await fetchCurriculums();
+      setSuccessMessage("Curriculum updated successfully!");
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Failed to update curriculum");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this curriculum? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/curriculum/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete curriculum");
+      
+      console.log('Curriculum deleted:', id);
+      
+      // Force immediate refresh
+      await fetchCurriculums();
+      setSuccessMessage("Curriculum deleted successfully!");
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Failed to delete curriculum");
     }
   };
 
@@ -346,6 +529,24 @@ const UploadContent = () => {
 
                 {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
                 {successMessage && <div className="alert alert-success">{successMessage}</div>}
+
+                {/* Excel Import Section */}
+                <div className="alert alert-info mb-4">
+                  <h6 className="mb-2">📊 Bulk Import from Excel</h6>
+                  <p className="mb-2 small">
+                    Import curriculum structure from Excel file. Required columns: 
+                    <strong> Chapter, Topic, HasSubtopics, Subtopic, YouTubeURL, PDFAccess</strong>
+                  </p>
+                  <Form.Control
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleExcelImport}
+                    className="mb-2"
+                  />
+                  <Form.Text className="text-muted">
+                    After import, you can still manually edit chapters/topics below before saving.
+                  </Form.Text>
+                </div>
 
                 <Form onSubmit={handleSubmit}>
                   <Form.Group className="mb-3">
@@ -654,21 +855,560 @@ const UploadContent = () => {
 
                 <hr className="my-4" />
 
-                <h5 className="mb-2">Existing Curriculums</h5>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h5 className="mb-0">Existing Curriculums</h5>
+                  <Button
+                    size="sm"
+                    variant="outline-primary"
+                    onClick={() => fetchCurriculums()}
+                    disabled={loadingCurriculums}
+                  >
+                    {loadingCurriculums ? '🔄 Refreshing...' : '🔄 Refresh List'}
+                  </Button>
+                </div>
                 {loadingCurriculums ? (
                   <p>Loading...</p>
+                ) : allCurriculums.length === 0 ? (
+                  <p className="text-muted">No curriculums found for this course.</p>
                 ) : (
-                  <ul className="mb-0">
-                    {allCurriculums.map((c, idx) => (
-                      <li key={c.id ?? idx}>{c.subject}</li>
-                    ))}
-                  </ul>
+                  <div className="table-responsive">
+                    <Table striped bordered hover>
+                      <thead>
+                        <tr>
+                          <th>Subject</th>
+                          <th>Chapters</th>
+                          <th>Topics</th>
+                          <th>Created</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allCurriculums.map((c) => {
+                          const chaptersCount = c.chapters?.length || 0;
+                          const topicsCount = c.chapters?.reduce((sum, ch) => sum + (ch.topics?.length || 0), 0) || 0;
+                          const createdDate = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'N/A';
+                          
+                          return (
+                            <tr key={c.id}>
+                              <td style={{ fontWeight: 600 }}>{c.subject}</td>
+                              <td>{chaptersCount}</td>
+                              <td>{topicsCount}</td>
+                              <td>{createdDate}</td>
+                              <td>
+                                <div className="d-flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="primary"
+                                    onClick={() => handleEditClick(c)}
+                                  >
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="danger"
+                                    onClick={() => c.id && handleDelete(c.id)}
+                                  >
+                                    Delete
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </Table>
+                  </div>
                 )}
               </div>
             </div>
           </div>
         </div>
       </main>
+
+      {/* EDIT MODAL */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="xl" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Curriculum - Full Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ maxHeight: '75vh', overflowY: 'auto' }}>
+          {editCurriculum && (
+            <Form>
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold">Subject</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={editCurriculum.subject}
+                  onChange={(e) => setEditCurriculum({ ...editCurriculum, subject: e.target.value })}
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold">Intro Video URL</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  value={editCurriculum.introVideoUrl || ''}
+                  onChange={(e) => setEditCurriculum({ ...editCurriculum, introVideoUrl: e.target.value })}
+                />
+              </Form.Group>
+
+              <h6 className="mt-4 mb-3 fw-bold">Chapters & Topics</h6>
+              {editCurriculum.chapters?.map((chapter, chIndex) => (
+                <div key={chIndex} className="border p-3 mb-3 rounded bg-light">
+                  <Form.Group className="mb-3">
+                    <Form.Label className="fw-semibold">Chapter {chIndex + 1}</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={chapter.chapter}
+                      onChange={(e) => {
+                        const updatedChapters = [...editCurriculum.chapters];
+                        updatedChapters[chIndex].chapter = e.target.value;
+                        setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                      }}
+                      required
+                    />
+                  </Form.Group>
+
+                  {chapter.topics?.map((topic, tIndex) => (
+                    <div key={tIndex} className="bg-white p-3 rounded mb-3 border">
+                      <Form.Group className="mb-2">
+                        <Form.Label className="fw-semibold" style={{ fontSize: '0.95rem' }}>
+                          Topic {tIndex + 1}
+                        </Form.Label>
+                        <Form.Control
+                          type="text"
+                          size="sm"
+                          value={topic.topic}
+                          onChange={(e) => {
+                            const updatedChapters = [...editCurriculum.chapters];
+                            updatedChapters[chIndex].topics[tIndex].topic = e.target.value;
+                            setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                          }}
+                          required
+                        />
+                      </Form.Group>
+
+                      <Form.Group className="mb-2">
+                        <Form.Label style={{ fontSize: '0.9rem' }}>Has Subtopics?</Form.Label>
+                        <div>
+                          <Form.Check
+                            inline
+                            label="Yes"
+                            type="radio"
+                            name={`edit-subtopic-${chIndex}-${tIndex}`}
+                            checked={topic.hasSubtopics}
+                            onChange={() => {
+                              const updatedChapters = [...editCurriculum.chapters];
+                              updatedChapters[chIndex].topics[tIndex].hasSubtopics = true;
+                              if (!updatedChapters[chIndex].topics[tIndex].subtopics) {
+                                updatedChapters[chIndex].topics[tIndex].subtopics = [
+                                  { title: "", youtubeUrl: "", pdfAccess: "VIEW", pdf: null },
+                                ];
+                              }
+                              setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                            }}
+                          />
+                          <Form.Check
+                            inline
+                            label="No"
+                            type="radio"
+                            name={`edit-subtopic-${chIndex}-${tIndex}`}
+                            checked={!topic.hasSubtopics}
+                            onChange={() => {
+                              const updatedChapters = [...editCurriculum.chapters];
+                              updatedChapters[chIndex].topics[tIndex].hasSubtopics = false;
+                              delete updatedChapters[chIndex].topics[tIndex].subtopics;
+                              setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                            }}
+                          />
+                        </div>
+                      </Form.Group>
+
+                      {/* SUBTOPICS */}
+                      {topic.hasSubtopics && topic.subtopics?.map((sub, sIndex) => (
+                        <div key={sIndex} className="p-2 mb-2 bg-info bg-opacity-10 rounded border">
+                          <Form.Group className="mb-2">
+                            <Form.Label style={{ fontSize: '0.85rem' }}>Subtopic {sIndex + 1}</Form.Label>
+                            <Form.Control
+                              size="sm"
+                              value={sub.title}
+                              onChange={(e) => {
+                                const updatedChapters = [...editCurriculum.chapters];
+                                if (updatedChapters[chIndex].topics[tIndex].subtopics?.[sIndex]) {
+                                  updatedChapters[chIndex].topics[tIndex].subtopics![sIndex].title = e.target.value;
+                                }
+                                setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                              }}
+                              placeholder="Subtopic title"
+                            />
+                          </Form.Group>
+                          
+                          <Form.Group className="mb-2">
+                            <Form.Label style={{ fontSize: '0.85rem' }}>YouTube URL</Form.Label>
+                            <Form.Control
+                              size="sm"
+                              value={sub.youtubeUrl}
+                              onChange={(e) => {
+                                const updatedChapters = [...editCurriculum.chapters];
+                                if (updatedChapters[chIndex].topics[tIndex].subtopics?.[sIndex]) {
+                                  updatedChapters[chIndex].topics[tIndex].subtopics![sIndex].youtubeUrl = e.target.value;
+                                }
+                                setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                              }}
+                              placeholder="https://youtube.com/..."
+                            />
+                          </Form.Group>
+
+                          <Form.Group className="mb-2">
+                            <Form.Label style={{ fontSize: '0.85rem' }}>PDF Access</Form.Label>
+                            <Form.Select
+                              size="sm"
+                              value={sub.pdfAccess}
+                              onChange={(e) => {
+                                const updatedChapters = [...editCurriculum.chapters];
+                                if (updatedChapters[chIndex].topics[tIndex].subtopics?.[sIndex]) {
+                                  updatedChapters[chIndex].topics[tIndex].subtopics![sIndex].pdfAccess = e.target.value;
+                                }
+                                setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                              }}
+                            >
+                              <option value="VIEW">View Only</option>
+                              <option value="DOWNLOAD">Download</option>
+                              <option value="PAID">Paid</option>
+                            </Form.Select>
+                          </Form.Group>
+
+                          <Form.Group className="mb-2">
+                            <Form.Label style={{ fontSize: '0.85rem' }}>
+                              {typeof sub.pdf === 'string' && sub.pdf ? 'Replace PDF' : 'Upload PDF'}
+                            </Form.Label>
+                            <Form.Control
+                              type="file"
+                              size="sm"
+                              accept=".pdf"
+                              onChange={async (e) => {
+                                const file = (e.target as HTMLInputElement).files?.[0];
+                                if (file) {
+                                  // Upload immediately and get URL
+                                  try {
+                                    const url = await handleFileUpload(file);
+                                    const updatedChapters = [...editCurriculum.chapters];
+                                    if (updatedChapters[chIndex].topics[tIndex].subtopics?.[sIndex]) {
+                                      updatedChapters[chIndex].topics[tIndex].subtopics![sIndex].pdf = url;
+                                    }
+                                    setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                                  } catch (err) {
+                                    alert('Failed to upload PDF: ' + (err instanceof Error ? err.message : 'Unknown error'));
+                                  }
+                                }
+                              }}
+                            />
+                            {typeof sub.pdf === 'string' && sub.pdf && (
+                              <Form.Text className="text-muted d-block">
+                                Current: <a href={sub.pdf} target="_blank" rel="noopener noreferrer">View PDF</a>
+                              </Form.Text>
+                            )}
+                          </Form.Group>
+
+                          <Button
+                            size="sm"
+                            variant="outline-danger"
+                            onClick={() => {
+                              const updatedChapters = [...editCurriculum.chapters];
+                              updatedChapters[chIndex].topics[tIndex].subtopics?.splice(sIndex, 1);
+                              setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                            }}
+                          >
+                            Remove Subtopic
+                          </Button>
+                        </div>
+                      ))}
+
+                      {topic.hasSubtopics && (
+                        <Button
+                          size="sm"
+                          variant="outline-info"
+                          className="mb-2"
+                          onClick={() => {
+                            const updatedChapters = [...editCurriculum.chapters];
+                            if (!updatedChapters[chIndex].topics[tIndex].subtopics) {
+                              updatedChapters[chIndex].topics[tIndex].subtopics = [];
+                            }
+                            updatedChapters[chIndex].topics[tIndex].subtopics!.push({
+                              title: "",
+                              youtubeUrl: "",
+                              pdfAccess: "VIEW",
+                              pdf: null,
+                            });
+                            setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                          }}
+                        >
+                          + Add Subtopic
+                        </Button>
+                      )}
+
+                      {/* DIRECT TOPIC CONTENT (NO SUBTOPICS) */}
+                      {!topic.hasSubtopics && (
+                        <>
+                          <Form.Group className="mb-2">
+                            <Form.Label style={{ fontSize: '0.85rem' }}>YouTube URL</Form.Label>
+                            <Form.Control
+                              type="text"
+                              size="sm"
+                              placeholder="https://www.youtube.com/watch?v=..."
+                              value={topic.youtubeUrl || ''}
+                              onChange={(e) => {
+                                const updatedChapters = [...editCurriculum.chapters];
+                                updatedChapters[chIndex].topics[tIndex].youtubeUrl = e.target.value;
+                                setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                              }}
+                            />
+                          </Form.Group>
+                          
+                          <Form.Group className="mb-2">
+                            <Form.Label style={{ fontSize: '0.85rem' }}>PDF Access</Form.Label>
+                            <Form.Select
+                              size="sm"
+                              value={topic.pdfAccess || 'VIEW'}
+                              onChange={(e) => {
+                                const updatedChapters = [...editCurriculum.chapters];
+                                updatedChapters[chIndex].topics[tIndex].pdfAccess = e.target.value;
+                                setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                              }}
+                            >
+                              <option value="VIEW">View Only</option>
+                              <option value="DOWNLOAD">Download</option>
+                              <option value="PAID">Paid</option>
+                            </Form.Select>
+                          </Form.Group>
+
+                          <Form.Group className="mb-2">
+                            <Form.Label style={{ fontSize: '0.85rem' }}>
+                              {typeof topic.pdf === 'string' && topic.pdf ? 'Replace PDF' : 'Upload PDF'}
+                            </Form.Label>
+                            <Form.Control
+                              type="file"
+                              size="sm"
+                              accept=".pdf"
+                              onChange={async (e) => {
+                                const file = (e.target as HTMLInputElement).files?.[0];
+                                if (file) {
+                                  try {
+                                    const url = await handleFileUpload(file);
+                                    const updatedChapters = [...editCurriculum.chapters];
+                                    updatedChapters[chIndex].topics[tIndex].pdf = url;
+                                    setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                                  } catch (err) {
+                                    alert('Failed to upload PDF: ' + (err instanceof Error ? err.message : 'Unknown error'));
+                                  }
+                                }
+                              }}
+                            />
+                            {typeof topic.pdf === 'string' && topic.pdf && (
+                              <Form.Text className="text-muted d-block">
+                                Current: <a href={topic.pdf} target="_blank" rel="noopener noreferrer">View PDF</a>
+                              </Form.Text>
+                            )}
+                          </Form.Group>
+                        </>
+                      )}
+                      
+                      <Button
+                        size="sm"
+                        variant="outline-danger"
+                        className="mt-2"
+                        onClick={() => {
+                          const updatedChapters = [...editCurriculum.chapters];
+                          updatedChapters[chIndex].topics.splice(tIndex, 1);
+                          setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                        }}
+                      >
+                        Remove Topic
+                      </Button>
+                    </div>
+                  ))}
+
+                  <div className="d-flex gap-2 mt-2">
+                    <Button
+                      size="sm"
+                      variant="outline-success"
+                      onClick={() => {
+                        const updatedChapters = [...editCurriculum.chapters];
+                        updatedChapters[chIndex].topics.push({
+                          topic: "",
+                          hasSubtopics: false,
+                          youtubeUrl: "",
+                          pdfAccess: "VIEW",
+                          pdf: null,
+                        });
+                        setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                      }}
+                    >
+                      + Add Topic
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline-danger"
+                      onClick={() => {
+                        const updatedChapters = editCurriculum.chapters.filter((_, idx) => idx !== chIndex);
+                        setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                      }}
+                    >
+                      Remove Chapter
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              <Button
+                size="sm"
+                variant="outline-primary"
+                className="mb-3"
+                onClick={() => {
+                  const updatedChapters = [
+                    ...editCurriculum.chapters,
+                    {
+                      chapter: "",
+                      topics: [
+                        {
+                          topic: "",
+                          hasSubtopics: false,
+                          youtubeUrl: "",
+                          pdfAccess: "VIEW",
+                          pdf: null,
+                        },
+                      ],
+                    },
+                  ];
+                  setEditCurriculum({ ...editCurriculum, chapters: updatedChapters });
+                }}
+              >
+                + Add Chapter
+              </Button>
+
+              {/* MCQ Editor Section */}
+              <hr className="my-4" />
+              <h6 className="mb-3 fw-bold">📝 Subject-Level MCQs (Optional)</h6>
+              <p className="text-muted small mb-3">
+                Add multiple choice questions for the entire subject/curriculum.
+              </p>
+              
+              {editCurriculum.mcqs?.map((mcq, mcqIndex) => (
+                <div key={mcqIndex} className="border p-3 mb-3 rounded bg-light">
+                  <Form.Group className="mb-2">
+                    <Form.Label className="fw-semibold">Question {mcqIndex + 1}</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={2}
+                      value={mcq.question}
+                      onChange={(e) => {
+                        const updatedMcqs = [...(editCurriculum.mcqs || [])];
+                        updatedMcqs[mcqIndex].question = e.target.value;
+                        setEditCurriculum({ ...editCurriculum, mcqs: updatedMcqs });
+                      }}
+                      placeholder="Enter question"
+                    />
+                  </Form.Group>
+
+                  {mcq.options?.map((option, optIndex) => (
+                    <Form.Group key={optIndex} className="mb-2">
+                      <Form.Label style={{ fontSize: '0.9rem' }}>Option {optIndex + 1}</Form.Label>
+                      <div className="d-flex gap-2">
+                        <Form.Check
+                          type="radio"
+                          name={`mcq-${mcqIndex}`}
+                          checked={mcq.correctAnswerIndex === optIndex}
+                          onChange={() => {
+                            const updatedMcqs = [...(editCurriculum.mcqs || [])];
+                            updatedMcqs[mcqIndex].correctAnswerIndex = optIndex;
+                            setEditCurriculum({ ...editCurriculum, mcqs: updatedMcqs });
+                          }}
+                          label=""
+                        />
+                        <Form.Control
+                          size="sm"
+                          value={option}
+                          onChange={(e) => {
+                            const updatedMcqs = [...(editCurriculum.mcqs || [])];
+                            updatedMcqs[mcqIndex].options[optIndex] = e.target.value;
+                            setEditCurriculum({ ...editCurriculum, mcqs: updatedMcqs });
+                          }}
+                          placeholder={`Option ${optIndex + 1}`}
+                        />
+                      </div>
+                    </Form.Group>
+                  ))}
+
+                  <Form.Group className="mb-2">
+                    <Form.Label style={{ fontSize: '0.9rem' }}>Explanation (Optional)</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={2}
+                      size="sm"
+                      value={mcq.explanation || ''}
+                      onChange={(e) => {
+                        const updatedMcqs = [...(editCurriculum.mcqs || [])];
+                        updatedMcqs[mcqIndex].explanation = e.target.value;
+                        setEditCurriculum({ ...editCurriculum, mcqs: updatedMcqs });
+                      }}
+                      placeholder="Explain the correct answer"
+                    />
+                  </Form.Group>
+
+                  <Button
+                    size="sm"
+                    variant="outline-danger"
+                    onClick={() => {
+                      const updatedMcqs = (editCurriculum.mcqs || []).filter((_, idx) => idx !== mcqIndex);
+                      setEditCurriculum({ ...editCurriculum, mcqs: updatedMcqs });
+                    }}
+                  >
+                    Remove MCQ
+                  </Button>
+                </div>
+              ))}
+
+              <Button
+                size="sm"
+                variant="outline-success"
+                onClick={() => {
+                  const updatedMcqs = [
+                    ...(editCurriculum.mcqs || []),
+                    {
+                      id: `mcq-${Date.now()}`,
+                      question: "",
+                      options: ["", "", "", ""],
+                      correctAnswerIndex: 0,
+                      explanation: "",
+                    },
+                  ];
+                  setEditCurriculum({ ...editCurriculum, mcqs: updatedMcqs });
+                }}
+              >
+                + Add MCQ
+              </Button>
+
+              <div className="alert alert-warning mt-3">
+                <strong>Note:</strong> Case Study MCQs for individual topics/subtopics are preserved but not editable in this modal. 
+                You would need a dedicated case study MCQ editor for those.
+              </div>
+            </Form>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleEditSubmit}
+            disabled={saving}
+          >
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* FOOTER (ke
       pt outside sticky grid so it never overlaps content) */}

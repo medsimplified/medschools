@@ -43,8 +43,16 @@ function InstructorUploadCourse() {
     if (!session?.user?.id) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/courses');
+      const timestamp = new Date().getTime();
+      const res = await fetch(`/api/courses?t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       const data = await res.json();
+      console.log('Fetched courses:', data);
       if (res.ok) {
         setCourses(data || []);
       } else {
@@ -140,7 +148,7 @@ function InstructorUploadCourse() {
           videoUrl: "",
         });
         setFile(null);
-        fetchCourses();
+        await fetchCourses();
       } else {
         toast.error(data.error || "Failed to add course");
       }
@@ -199,7 +207,7 @@ function InstructorUploadCourse() {
         setEditId(null);
         setEditForm(null);
         setEditFile(null);
-        fetchCourses();
+        await fetchCourses();
       } else {
         toast.error(data.error || "Failed to update course");
       }
@@ -219,7 +227,7 @@ function InstructorUploadCourse() {
 
         if (res.ok) {
           toast.success("Course deleted successfully");
-          fetchCourses();
+          await fetchCourses();
         } else {
           toast.error(data.error || "Failed to delete course");
         }

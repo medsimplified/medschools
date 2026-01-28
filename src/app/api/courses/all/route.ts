@@ -17,7 +17,13 @@ export async function GET() {
     
     console.log(`📚 Fetched ${courses.length} courses`);
     
-    return NextResponse.json(courses);
+    return NextResponse.json(courses, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (err) {
     console.error("FETCH ALL COURSES ERROR:", err);
     return NextResponse.json({ error: "Failed to fetch courses" }, { status: 500 });

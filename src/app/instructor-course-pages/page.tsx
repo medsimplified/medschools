@@ -93,8 +93,16 @@ const UploadContent = () => {
     const fetchCourses = async () => {
       if (!session?.user?.id) return;
       try {
-        const res = await fetch('/api/courses');
+        const timestamp = new Date().getTime();
+        const res = await fetch(`/api/courses?t=${timestamp}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
         const data = await res.json();
+        console.log('Fetched courses:', data);
         setCourses(Array.isArray(data) ? data : []);
       } catch (e) {
         setCourses([]);
@@ -114,8 +122,16 @@ const UploadContent = () => {
   const fetchCurriculums = async () => {
     setLoadingCurriculums(true);
     try {
-      const res = await fetch("/api/curriculum");
+      const timestamp = new Date().getTime();
+      const res = await fetch(`/api/curriculum?t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       const data = await res.json();
+      console.log('Fetched curriculums:', data);
       setAllCurriculums(data || []);
     } catch (error) {
       console.error("Error fetching curriculums:", error);
@@ -316,6 +332,9 @@ const UploadContent = () => {
       console.log("✅ Curriculum saved successfully:", result);
 
       setSuccessMessage("✅ Curriculum submitted successfully! All files uploaded.");
+      
+      // Force refresh
+      await fetchCurriculums();
       
       // Reset form
       setCurriculum([{

@@ -15,7 +15,14 @@ const BlogArea = ({ style_1 }: any) => {
    useEffect(() => {
       const fetchBlogs = async () => {
          try {
-            const res = await fetch("/api/blogs");
+            const timestamp = new Date().getTime();
+            const res = await fetch(`/api/blogs?t=${timestamp}`, {
+               cache: 'no-store',
+               headers: {
+                  'Cache-Control': 'no-cache',
+                  'Pragma': 'no-cache'
+               }
+            });
             const data = await res.json();
             setBlogs(Array.isArray(data) ? data : []);
          } catch {
@@ -51,7 +58,16 @@ const BlogArea = ({ style_1 }: any) => {
                               <div className="blog__post-thumb">
                                  <Link href={`/blog/${item.id}`} className="shine__animate-link">
                                     {item.image ? (
-                                       <Image src={item.image} alt={item.title} width={400} height={250} />
+                                       <Image 
+                                          src={item.image} 
+                                          alt={item.title} 
+                                          width={400} 
+                                          height={250}
+                                          unoptimized
+                                          onError={(e) => {
+                                             (e.target as HTMLImageElement).style.display = 'none';
+                                          }}
+                                       />
                                     ) : (
                                        <div style={{width: "100%", height: 200, background: "#eee"}} />
                                     )}

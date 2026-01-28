@@ -42,7 +42,14 @@ export async function GET(req: NextRequest) {
 
     console.log(`📖 Fetched ${curriculums.length} curriculums for user ${session.user.id} (${session.user.role})`);
     
-    return NextResponse.json(curriculums, { status: 200 });
+    return NextResponse.json(curriculums, { 
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (error) {
     console.error("❌ Error fetching curriculums:", error);
     return NextResponse.json(
