@@ -17,8 +17,6 @@ function InstructorUploadCourse() {
     description: "",
     thumb: "",
     instructors: "",
-    price: "",
-    videoUrl: "",
   });
   const [file, setFile] = useState<File | null>(null);
   const [courses, setCourses] = useState<any[]>([]);
@@ -144,8 +142,6 @@ function InstructorUploadCourse() {
           description: "",
           thumb: "",
           instructors: "",
-          price: "",
-          videoUrl: "",
         });
         setFile(null);
         await fetchCourses();
@@ -345,26 +341,6 @@ function InstructorUploadCourse() {
                   />
                 </div>
                 <div className="col-md-6">
-                  <input
-                    name="price"
-                    type="number"
-                    className="form-control"
-                    placeholder="Price"
-                    value={editId ? editForm.price : form.price}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="col-md-6">
-                  <input
-                    name="videoUrl"
-                    className="form-control"
-                    placeholder="Intro Video URL"
-                    value={editId ? editForm.videoUrl : form.videoUrl}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="col-md-6">
                   <div className="mb-2">
                     <label className="form-label">Course Thumbnail Image</label>
                     <small className="d-block text-muted mb-2">
@@ -420,7 +396,6 @@ function InstructorUploadCourse() {
                       <th>Title</th>
                       <th>Category</th>
                       <th>Instructors</th>
-                      <th>Price</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -457,20 +432,6 @@ function InstructorUploadCourse() {
                             />
                           </td>
                           <td>
-                            <input
-                              value={editForm.price}
-                              name="price"
-                              onChange={handleChange}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              value={editForm.videoUrl}
-                              name="videoUrl"
-                              onChange={handleChange}
-                            />
-                          </td>
-                          <td>
                             <input type="file" onChange={handleFileChange} />
                             {editForm.thumb && (
                               <Image
@@ -502,8 +463,6 @@ function InstructorUploadCourse() {
                           <td>{course.category}</td>
                           <td>{course.description}</td>
                           <td>{course.instructors}</td>
-                          <td>{course.price}</td>
-                          <td>{course.videoUrl}</td>
                           <td>
                             {course.thumb && (
                               <Image src={course.thumb} alt="thumb" width={60} height={40} />

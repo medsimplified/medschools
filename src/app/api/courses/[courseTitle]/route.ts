@@ -58,8 +58,6 @@ export async function GET(
           description: `Complete course on ${curriculum.subject}`,
           thumb: "/assets/img/courses/course_thumb01.jpg",
           instructors: "Dr. Bhanu Prakash",
-          price: 29.99,
-          videoUrl: (curriculum as any).introVideoUrl || null,
           createdAt: curriculum.createdAt,
           updatedAt: curriculum.updatedAt,
           instructorId: curriculum.instructorId,
@@ -118,7 +116,8 @@ export async function PUT(
     }
 
     // If title is being updated, regenerate slug
-    let updateData: any = { ...body };
+    const { price, videoUrl, ...rest } = body ?? {};
+    let updateData: any = { ...rest };
     if (body.title && body.title !== course.title) {
       const instructorName = session.user.name || session.user.role || 'instructor';
       let newSlug = generateCourseSlug(body.title, instructorName);
@@ -208,4 +207,3 @@ export async function DELETE(
     );
   }
 }
-  

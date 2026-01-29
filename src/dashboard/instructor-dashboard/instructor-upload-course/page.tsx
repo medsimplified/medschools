@@ -9,8 +9,6 @@ interface Course {
   description: string;
   thumb: string;
   instructors: string;
-  price: string;
-  videoUrl: string;
   pdfUrl?: string;         // PDF field
   caseStudyUrl?: string;   // Case Study field
 }
@@ -23,8 +21,6 @@ const InstructorUploadCourse = () => {
     description: "",
     thumb: "",
     instructors: "",
-    price: "",
-    videoUrl: "",
     pdfUrl: "",
     caseStudyUrl: "",
   });
@@ -76,8 +72,6 @@ const InstructorUploadCourse = () => {
         description: "",
         thumb: "",
         instructors: "",
-        price: "",
-        videoUrl: "",
         pdfUrl: "",
         caseStudyUrl: "",
       });
@@ -94,8 +88,6 @@ const InstructorUploadCourse = () => {
       description: course.description,
       thumb: course.thumb,
       instructors: course.instructors,
-      price: course.price,
-      videoUrl: course.videoUrl,
     });
   };
 
@@ -173,28 +165,6 @@ const InstructorUploadCourse = () => {
                 value={editId ? editForm?.instructors ?? "" : form.instructors}
                 onChange={editId ? handleEditChange : handleChange}
                 required
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label fw-semibold">Price</label>
-              <input
-                className="form-control"
-                type="number"
-                placeholder="Price"
-                name="price"
-                value={editId ? editForm?.price ?? "" : form.price}
-                onChange={editId ? handleEditChange : handleChange}
-                required
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label fw-semibold">Intro Video URL</label>
-              <input
-                className="form-control"
-                placeholder="Intro Video URL"
-                name="videoUrl"
-                value={editId ? editForm?.videoUrl ?? "" : form.videoUrl}
-                onChange={editId ? handleEditChange : handleChange}
               />
             </div>
             <div className="col-md-6">
@@ -277,8 +247,6 @@ const InstructorUploadCourse = () => {
                     <th>Category</th>
                     <th>Description</th>
                     <th>Instructor</th>
-                    <th>Price</th>
-                    <th>Video</th>
                     <th>PDF</th>
                     <th>Case Study</th>
                     <th>Actions</th>
@@ -287,7 +255,7 @@ const InstructorUploadCourse = () => {
                 <tbody>
                   {courses.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="text-center">
+                      <td colSpan={7} className="text-center">
                         No courses found.
                       </td>
                     </tr>
@@ -298,20 +266,6 @@ const InstructorUploadCourse = () => {
                       <td>{course.category}</td>
                       <td>{course.description}</td>
                       <td>{course.instructors}</td>
-                      <td>{course.price}</td>
-                      <td>
-                        {course.videoUrl ? (
-                          <a
-                            href={course.videoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Video
-                          </a>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
                       <td>
                         {course.pdfUrl ? (
                           <a href={course.pdfUrl} target="_blank" rel="noopener noreferrer">

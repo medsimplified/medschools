@@ -87,18 +87,6 @@ const CourseDetailsBySlug = () => {
               <p>{course.description || "No description available."}</p>
             </div>
 
-            {course.videoUrl && (
-              <div className="course-video mb-4">
-                <h3>Course Preview</h3>
-                <div className="ratio ratio-16x9">
-                  <iframe
-                    src={course.videoUrl}
-                    title={course.title}
-                    allowFullScreen
-                  ></iframe>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="col-lg-4">
@@ -106,15 +94,6 @@ const CourseDetailsBySlug = () => {
               <div className="card-body">
                 <h5 className="card-title">Course Information</h5>
                 
-                {course.price !== undefined && (
-                  <div className="mb-3">
-                    <strong>Price:</strong>
-                    <div className="h4 text-primary">
-                      {course.price === 0 ? "Free" : `₹${course.price}`}
-                    </div>
-                  </div>
-                )}
-
                 {course.category && (
                   <div className="mb-3">
                     <strong>Category:</strong>
