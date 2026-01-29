@@ -9,8 +9,6 @@ interface Course {
   description: string;
   thumb: string;
   instructors: string;
-  pdfUrl?: string;         // PDF field
-  caseStudyUrl?: string;   // Case Study field
 }
 
 const InstructorUploadCourse = () => {
@@ -21,8 +19,6 @@ const InstructorUploadCourse = () => {
     description: "",
     thumb: "",
     instructors: "",
-    pdfUrl: "",
-    caseStudyUrl: "",
   });
   const [editId, setEditId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<Omit<Course, "id"> | null>(null);
@@ -72,8 +68,6 @@ const InstructorUploadCourse = () => {
         description: "",
         thumb: "",
         instructors: "",
-        pdfUrl: "",
-        caseStudyUrl: "",
       });
       setEditId(null);
       setEditForm(null);
@@ -167,56 +161,6 @@ const InstructorUploadCourse = () => {
                 required
               />
             </div>
-            <div className="col-md-6">
-              <label className="form-label fw-semibold">PDF Upload</label>
-              <input
-                className="form-control"
-                type="file"
-                accept="application/pdf"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const formData = new FormData();
-                  formData.append("file", file);
-                  formData.append("upload_preset", "bhanuprakash_upload");
-                  const res = await fetch("https://api.cloudinary.com/v1_1/dnycvwq6ad/upload", {
-                    method: "POST",
-                    body: formData,
-                  });
-                  const data = await res.json();
-                  if (editId) {
-                    setEditForm((f) => f ? { ...f, pdfUrl: data.secure_url } : null);
-                  } else {
-                    setForm((f) => ({ ...f, pdfUrl: data.secure_url }));
-                  }
-                }}
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label fw-semibold">Case Study Upload</label>
-              <input
-                className="form-control"
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const formData = new FormData();
-                  formData.append("file", file);
-                  formData.append("upload_preset", "bhanuprakash_upload");
-                  const res = await fetch("https://api.cloudinary.com/v1_1/dnycvwq6ad/upload", {
-                    method: "POST",
-                    body: formData,
-                  });
-                  const data = await res.json();
-                  if (editId) {
-                    setEditForm((f) => f ? { ...f, caseStudyUrl: data.secure_url } : null);
-                  } else {
-                    setForm((f) => ({ ...f, caseStudyUrl: data.secure_url }));
-                  }
-                }}
-              />
-            </div>
             <div className="col-12">
               <button type="submit" className="btn btn-primary">
                 {editId ? "Update Course" : "Add Course"}
@@ -247,15 +191,13 @@ const InstructorUploadCourse = () => {
                     <th>Category</th>
                     <th>Description</th>
                     <th>Instructor</th>
-                    <th>PDF</th>
-                    <th>Case Study</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {courses.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="text-center">
+                      <td colSpan={5} className="text-center">
                         No courses found.
                       </td>
                     </tr>
@@ -266,24 +208,6 @@ const InstructorUploadCourse = () => {
                       <td>{course.category}</td>
                       <td>{course.description}</td>
                       <td>{course.instructors}</td>
-                      <td>
-                        {course.pdfUrl ? (
-                          <a href={course.pdfUrl} target="_blank" rel="noopener noreferrer">
-                            PDF
-                          </a>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-                      <td>
-                        {course.caseStudyUrl ? (
-                          <a href={course.caseStudyUrl} target="_blank" rel="noopener noreferrer">
-                            Case Study
-                          </a>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
                       <td>
                         <button
                           className="btn btn-warning btn-sm me-2"
