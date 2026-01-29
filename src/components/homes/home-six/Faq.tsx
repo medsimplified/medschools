@@ -20,7 +20,7 @@ const Faq = () => {
                      </div>
                      <div className="faq__language-wrap" data-aos="fade-right" data-aos-delay="600"> 
                         <h2 className="title">160k</h2>
-                        <span>Country Language</span>
+                        <span>Students</span>
                      </div>
                      <div className="shape">
                         <Image src={faq_img3} alt="shape" className="alltuchtopdown" />
