@@ -24,8 +24,6 @@ export async function POST(req: Request) {
         description: data.description,
         thumb: data.thumb,
         instructors: data.instructors,
-        price: data.price ? parseFloat(data.price) : undefined,
-        videoUrl: data.videoUrl,
         slug,
         instructor: { connect: { id: data.instructorId } },
       },
