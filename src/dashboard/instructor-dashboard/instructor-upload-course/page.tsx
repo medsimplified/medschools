@@ -9,8 +9,6 @@ interface Course {
   description: string;
   thumb: string;
   instructors: string;
-  pdfUrl?: string;         // PDF field
-  caseStudyUrl?: string;   // Case Study field
 }
 
 const InstructorUploadCourse = () => {
@@ -21,8 +19,6 @@ const InstructorUploadCourse = () => {
     description: "",
     thumb: "",
     instructors: "",
-    pdfUrl: "",
-    caseStudyUrl: "",
   });
   const [editId, setEditId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<Omit<Course, "id"> | null>(null);
@@ -72,8 +68,6 @@ const InstructorUploadCourse = () => {
         description: "",
         thumb: "",
         instructors: "",
-        pdfUrl: "",
-        caseStudyUrl: "",
       });
       setEditId(null);
       setEditForm(null);
@@ -105,13 +99,14 @@ const InstructorUploadCourse = () => {
   };
 
   return (
-    <div className="container my-5">
-      <div className="row">
-        <div className="col-lg-3">
-          <DashboardSidebar />
-        </div>
-        <div className="col-lg-9">
-          <form className="row g-3 mb-4" onSubmit={handleSubmit}>
+    <section className="dashboard__area section-pb-120" style={{ paddingTop: "20px", paddingBottom: "48px" }}>
+      <div className="dashboard__bg"></div>
+      <div className="container" style={{ paddingTop: "0px" }}>
+        <div className="dashboard__inner-wrap">
+          <div className="row">
+            <DashboardSidebar />
+            <div className="col-lg-9">
+              <form className="row g-3 mb-4" onSubmit={handleSubmit}>
             <div className="col-md-6">
               <label className="form-label fw-semibold">Course Title</label>
               <input
@@ -167,56 +162,6 @@ const InstructorUploadCourse = () => {
                 required
               />
             </div>
-            <div className="col-md-6">
-              <label className="form-label fw-semibold">PDF Upload</label>
-              <input
-                className="form-control"
-                type="file"
-                accept="application/pdf"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const formData = new FormData();
-                  formData.append("file", file);
-                  formData.append("upload_preset", "bhanuprakash_upload");
-                  const res = await fetch("https://api.cloudinary.com/v1_1/dnycvwq6ad/upload", {
-                    method: "POST",
-                    body: formData,
-                  });
-                  const data = await res.json();
-                  if (editId) {
-                    setEditForm((f) => f ? { ...f, pdfUrl: data.secure_url } : null);
-                  } else {
-                    setForm((f) => ({ ...f, pdfUrl: data.secure_url }));
-                  }
-                }}
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label fw-semibold">Case Study Upload</label>
-              <input
-                className="form-control"
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const formData = new FormData();
-                  formData.append("file", file);
-                  formData.append("upload_preset", "bhanuprakash_upload");
-                  const res = await fetch("https://api.cloudinary.com/v1_1/dnycvwq6ad/upload", {
-                    method: "POST",
-                    body: formData,
-                  });
-                  const data = await res.json();
-                  if (editId) {
-                    setEditForm((f) => f ? { ...f, caseStudyUrl: data.secure_url } : null);
-                  } else {
-                    setForm((f) => ({ ...f, caseStudyUrl: data.secure_url }));
-                  }
-                }}
-              />
-            </div>
             <div className="col-12">
               <button type="submit" className="btn btn-primary">
                 {editId ? "Update Course" : "Add Course"}
@@ -236,77 +181,59 @@ const InstructorUploadCourse = () => {
           <div className="dashboard__content-title mt-5 mb-3">
             <h4 className="title">All Courses</h4>
           </div>
-          {loading ? (
-            <div>Loading...</div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-bordered table-striped">
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Category</th>
-                    <th>Description</th>
-                    <th>Instructor</th>
-                    <th>PDF</th>
-                    <th>Case Study</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {courses.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="text-center">
-                        No courses found.
-                      </td>
-                    </tr>
-                  )}
-                  {courses.map((course) => (
-                    <tr key={course.id}>
-                      <td>{course.title}</td>
-                      <td>{course.category}</td>
-                      <td>{course.description}</td>
-                      <td>{course.instructors}</td>
-                      <td>
-                        {course.pdfUrl ? (
-                          <a href={course.pdfUrl} target="_blank" rel="noopener noreferrer">
-                            PDF
-                          </a>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-                      <td>
-                        {course.caseStudyUrl ? (
-                          <a href={course.caseStudyUrl} target="_blank" rel="noopener noreferrer">
-                            Case Study
-                          </a>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-                      <td>
-                        <button
-                          className="btn btn-warning btn-sm me-2"
-                          onClick={() => startEdit(course)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDelete(course.id)}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {loading ? (
+                <div>Loading...</div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-bordered table-striped">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Instructor</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {courses.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="text-center">
+                            No courses found.
+                          </td>
+                        </tr>
+                      )}
+                      {courses.map((course) => (
+                        <tr key={course.id}>
+                          <td>{course.title}</td>
+                          <td>{course.category}</td>
+                          <td>{course.description}</td>
+                          <td>{course.instructors}</td>
+                          <td>
+                            <button
+                              className="btn btn-warning btn-sm me-2"
+                              onClick={() => startEdit(course)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="btn btn-danger btn-sm"
+                              onClick={() => handleDelete(course.id)}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 
